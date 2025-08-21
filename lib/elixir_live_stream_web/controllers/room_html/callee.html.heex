@@ -1,0 +1,131 @@
+<div class="container-fluid vh-100 p-0 bg-dark" id="video-app" phx-hook="WebRTCVideo" data-room-id={@room_id} data-auto-start="true">
+  <!-- Room ID Display -->
+  <div class="room-id-display">
+    <i class="fas fa-id-card me-2"></i>
+    Room: <%= @room_id %>
+  </div>
+  
+  <!-- Connection Status -->
+  <div class="connection-status status-connecting">
+    Connecting...
+  </div>
+  
+  <!-- Main Video Container -->
+  <div class="position-relative w-100 h-100">
+    <!-- Remote Video (Main) -->
+    <video 
+      id="remoteVideo"
+      class="video-element w-100 h-100"
+      autoplay
+      playsinline
+      muted
+      style="background: #000; object-fit: cover;"
+    ></video>
+    
+    <!-- Local Video (Picture-in-Picture) -->
+    <video 
+      id="localVideo"
+      class="local-video"
+      autoplay
+      playsinline
+      muted
+      style="background: #333;"
+    ></video>
+    
+    <!-- Loading State -->
+    <div class="position-absolute top-50 start-50 translate-middle text-white text-center" id="loading-state">
+      <div class="loading-spinner mb-3"></div>
+      <h4>Joining the call...</h4>
+      <p class="text-muted">Please allow camera and microphone access</p>
+    </div>
+    
+    <!-- Ready State -->
+    <div class="position-absolute top-50 start-50 translate-middle text-white text-center d-none" id="ready-state">
+      <i class="fas fa-video fa-3x mb-3 text-success"></i>
+      <h4>Ready to receive call</h4>
+      <p class="text-muted">Waiting for the other person to start the call...</p>
+    </div>
+  </div>
+  
+  <!-- Control Panel -->
+  <div class="controls-panel">
+    <button id="muteBtn" class="control-btn btn-mute" title="Toggle Microphone">
+      <i class="fas fa-microphone"></i>
+    </button>
+    
+    <button id="cameraBtn" class="control-btn btn-camera" title="Toggle Camera">
+      <i class="fas fa-video"></i>
+    </button>
+    
+    <button id="hangupBtn" class="control-btn btn-hangup" title="End Call">
+      <i class="fas fa-phone-slash"></i>
+    </button>
+    
+    <button class="control-btn btn-secondary" onclick="leaveRoom()" title="Leave Room">
+      <i class="fas fa-sign-out-alt"></i>
+    </button>
+  </div>
+</div>
+
+<script>
+  function leaveRoom() {
+    if (confirm('Are you sure you want to leave the room?')) {
+      window.location.href = '/';
+    }
+  }
+  
+  // Show/hide loading and ready states
+  document.addEventListener('DOMContentLoaded', () => {
+    const loadingState = document.getElementById('loading-state');
+    const readyState = document.getElementById('ready-state');
+    
+    // Simulate loading completion after a delay
+    setTimeout(() => {
+      loadingState.style.display = 'none';
+      readyState.classList.remove('d-none');
+    }, 2000);
+  });
+</script>
+
+<style>
+  #video-app {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .video-element {
+    background: linear-gradient(45deg, #1a1a1a, #2d2d2d);
+  }
+  
+  .local-video {
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .controls-panel {
+    backdrop-filter: blur(10px);
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+  
+  .control-btn {
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  
+  .control-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  .room-id-display {
+    font-size: 14px;
+    letter-spacing: 1px;
+    background-color: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+  }
+  
+  .connection-status {
+    font-size: 14px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+  }
+</style>

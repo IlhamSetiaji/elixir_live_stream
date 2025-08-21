@@ -1,0 +1,158 @@
+/* Custom styles for WebRTC Video Streaming */
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.local-video {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 200px;
+  height: 150px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.controls-panel {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 50px;
+  z-index: 100;
+}
+
+.control-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+  transform: scale(1.1);
+}
+
+.btn-mute {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-mute.muted {
+  background-color: #dc3545;
+}
+
+.btn-camera {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-camera.disabled {
+  background-color: #dc3545;
+}
+
+.btn-call {
+  background-color: #198754;
+  color: white;
+}
+
+.btn-hangup {
+  background-color: #dc3545;
+  color: white;
+}
+
+.connection-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  z-index: 100;
+}
+
+.status-connecting {
+  background-color: #ffc107;
+}
+
+.status-connected {
+  background-color: #198754;
+}
+
+.status-disconnected {
+  background-color: #dc3545;
+}
+
+.room-id-display {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 5px;
+  font-family: monospace;
+  z-index: 100;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .local-video {
+    width: 150px;
+    height: 100px;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .controls-panel {
+    bottom: 10px;
+    padding: 10px;
+  }
+  
+  .control-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
+  }
+}
