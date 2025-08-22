@@ -15,6 +15,8 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const Hooks = {
   WebRTCVideo: {
     mounted() {
+      console.log("WebRTC Video hook mounted for room:", this.el.dataset.roomId)
+      
       this.webrtcClient = new WebRTCClient()
       this.signalingService = new SignalingService(this.el.dataset.roomId)
       
@@ -41,10 +43,37 @@ const Hooks = {
         this.updateConnectionStatus(status)
       }
       
+      // Handle peer joining (important for caller to know when callee joins)
+      this.webrtcClient.onPeerJoined = (payload) => {
+        console.log("Peer joined event received in hook")
+        this.onPeerJoined()
+      }
+      
       // Auto-start local video for callee page
       if (this.el.dataset.autoStart === "true") {
         this.startLocalVideo()
       }
+    },
+    
+    onPeerJoined() {
+      console.log("Handling peer joined in UI")
+      // Hide waiting state and show ready state for caller
+      const waitingState = this.el.querySelector('#waiting-state')
+      const loadingState = this.el.querySelector('#loading-state')
+      
+      if (waitingState && !waitingState.classList.contains('d-none')) {
+        waitingState.classList.add('d-none')
+      }
+      
+      if (loadingState) {
+        loadingState.style.display = 'none'
+      }
+      
+      // Dispatch custom event for the page to handle
+      window.dispatchEvent(new CustomEvent('peer-joined'))
+      
+      // Update status
+      this.updateConnectionStatus('Peer joined - Ready to call')
     },
     
     setupControlButtons() {

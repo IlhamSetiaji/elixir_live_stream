@@ -27,6 +27,7 @@ class WebRTCClient {
     }
     
     this.onStatusChange = null
+    this.onPeerJoined = null
   }
   
   /**
@@ -44,19 +45,34 @@ class WebRTCClient {
     if (!this.signalingService) return
     
     this.signalingService.onOffer = (offer) => {
+      console.log("Received offer from peer")
       this.handleOffer(offer)
     }
     
     this.signalingService.onAnswer = (answer) => {
+      console.log("Received answer from peer")
       this.handleAnswer(answer)
     }
     
     this.signalingService.onIceCandidate = (candidate) => {
+      console.log("Received ICE candidate from peer")
       this.handleRemoteIceCandidate(candidate)
     }
     
-    this.signalingService.onPeerLeft = () => {
+    this.signalingService.onPeerJoined = (payload) => {
+      console.log("Peer joined the room:", payload)
+      this.updateStatus('Peer joined - Ready to call')
+      this.onPeerJoined && this.onPeerJoined(payload)
+    }
+    
+    this.signalingService.onPeerLeft = (payload) => {
+      console.log("Peer left the room:", payload)
       this.handlePeerLeft()
+    }
+    
+    this.signalingService.onConnected = (resp) => {
+      console.log("Connected to signaling server:", resp)
+      this.updateStatus('Connected to room')
     }
   }
   
@@ -160,21 +176,27 @@ class WebRTCClient {
    */
   async initiateCall() {
     try {
+      console.log("Initiating call...")
+      
       if (!this.localStream) {
+        console.log("Starting local video first...")
         await this.startLocalVideo()
       }
       
       this.isInitiator = true
       this.createPeerConnection()
       
+      console.log("Creating offer...")
       // Create and send offer
       const offer = await this.peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: true
       })
       
+      console.log("Setting local description...")
       await this.peerConnection.setLocalDescription(offer)
       
+      console.log("Sending offer through signaling service...")
       if (this.signalingService) {
         this.signalingService.sendOffer(offer)
       }
@@ -182,7 +204,7 @@ class WebRTCClient {
       this.updateStatus('Calling...')
     } catch (error) {
       console.error('Error initiating call:', error)
-      this.updateStatus('Error initiating call')
+      this.updateStatus('Error initiating call: ' + error.message)
       throw error
     }
   }

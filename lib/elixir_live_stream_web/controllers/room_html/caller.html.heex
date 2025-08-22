@@ -109,11 +109,35 @@
     const loadingState = document.getElementById('loading-state');
     const waitingState = document.getElementById('waiting-state');
     
-    // Simulate loading completion after a delay
+    // Start with loading state, then show waiting state
     setTimeout(() => {
       loadingState.style.display = 'none';
       waitingState.classList.remove('d-none');
     }, 2000);
+    
+    // Listen for peer joined events via custom events
+    window.addEventListener('peer-joined', () => {
+      console.log('Peer joined event received in caller page');
+      waitingState.classList.add('d-none');
+      
+      // Show a "ready to call" message
+      const videoContainer = document.querySelector('.position-relative.w-100.h-100');
+      let readyMessage = document.getElementById('ready-message');
+      
+      if (!readyMessage) {
+        readyMessage = document.createElement('div');
+        readyMessage.id = 'ready-message';
+        readyMessage.className = 'position-absolute top-50 start-50 translate-middle text-white text-center';
+        readyMessage.innerHTML = `
+          <i class="fas fa-phone fa-3x mb-3 text-success"></i>
+          <h4>Ready to start the call!</h4>
+          <p class="text-muted">Click the green phone button to start the video call</p>
+        `;
+        videoContainer.appendChild(readyMessage);
+      }
+      
+      readyMessage.classList.remove('d-none');
+    });
   });
 </script>
 

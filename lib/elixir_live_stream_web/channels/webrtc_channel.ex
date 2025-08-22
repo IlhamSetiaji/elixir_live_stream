@@ -33,11 +33,24 @@ defmodule ElixirLiveStreamWeb.WebRTCChannel do
       joined_at: inspect(System.system_time(:second))
     })
 
-    # Notify others that a peer joined
-    broadcast_from!(socket, "peer_joined", %{user_id: user_id})
+    # Get current presence list
+    present_users = Presence.list(socket)
+    user_count = map_size(present_users)
+
+    IO.puts("User #{user_id} joined room #{socket.assigns.room_id}. Total users: #{user_count}")
+
+    # Notify ALL users (including the new one) about the peer joining
+    broadcast!(socket, "peer_joined", %{
+      user_id: user_id,
+      user_count: user_count,
+      present_users: present_users
+    })
 
     # Send current presence list to the new user
-    push(socket, "presence_state", Presence.list(socket))
+    push(socket, "presence_state", %{
+      presence: present_users,
+      user_count: user_count
+    })
 
     {:noreply, socket}
   end

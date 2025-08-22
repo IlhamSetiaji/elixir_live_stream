@@ -25,32 +25,45 @@ class SignalingService {
    * Initialize Phoenix socket connection
    */
   initializeSocket() {
-    // Get the socket from the LiveView app
-    if (window.liveSocket && window.liveSocket.socket) {
-      this.socket = window.liveSocket.socket
-      this.joinChannel()
-    } else {
-      // Fallback: create new socket connection
-      const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const socketUrl = `${socketProtocol}//${window.location.host}/socket`
+    // Create new socket connection for WebRTC signaling
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const socketUrl = `${socketProtocol}//${window.location.host}/socket`
+    
+    // Import Socket from phoenix
+    import("phoenix").then(({ Socket }) => {
+      this.socket = new Socket(socketUrl, {
+        params: { token: this.getCSRFToken() }
+      })
       
-      import("phoenix").then(({ Socket }) => {
-        this.socket = new Socket(socketUrl, {
-          params: { token: this.getCSRFToken() }
-        })
-        
-        this.socket.connect()
+      // Add connection event handlers
+      this.socket.onOpen(() => {
+        console.log("Socket connected successfully")
         this.joinChannel()
       })
-    }
+      
+      this.socket.onError((error) => {
+        console.error("Socket connection error:", error)
+      })
+      
+      this.socket.onClose(() => {
+        console.log("Socket connection closed")
+        this.isConnected = false
+      })
+      
+      this.socket.connect()
+    })
   }
   
   /**
    * Join the signaling channel for the room
    */
   joinChannel() {
-    if (!this.socket || !this.roomId) return
+    if (!this.socket || !this.roomId) {
+      console.error("Socket or room ID not available for joining channel")
+      return
+    }
     
+    console.log(`Joining WebRTC channel for room: ${this.roomId}`)
     this.channel = this.socket.channel(`webrtc:${this.roomId}`, {})
     
     // Handle channel events
@@ -96,6 +109,10 @@ class SignalingService {
       }
     })
     
+    this.channel.on("presence_state", (payload) => {
+      console.log("Presence state received:", payload)
+    })
+    
     // Join the channel
     this.channel.join()
       .receive("ok", (resp) => {
@@ -106,7 +123,7 @@ class SignalingService {
         }
       })
       .receive("error", (resp) => {
-        console.log("Unable to join signaling channel", resp)
+        console.error("Unable to join signaling channel", resp)
         if (this.onDisconnected) {
           this.onDisconnected(resp)
         }
