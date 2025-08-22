@@ -25,11 +25,13 @@
     <!-- Local Video (Picture-in-Picture) -->
     <video 
       id="localVideo"
-      class="local-video"
+      class="local-video draggable-video"
       autoplay
       playsinline
       muted
-      style="background: #333;"
+      style="background: #333; cursor: pointer;"
+      onclick="swapVideos()"
+      title="Click to swap videos"
     ></video>
     
     <!-- Loading State -->
@@ -95,6 +97,40 @@
     }
   }
   
+  function swapVideos() {
+    // Only allow swapping if not currently dragging
+    const isDragging = window.isDragging || false;
+    if (isDragging) return;
+    
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    
+    // Get current streams
+    const localStream = localVideo.srcObject;
+    const remoteStream = remoteVideo.srcObject;
+    
+    // Swap streams if both exist
+    if (localStream && remoteStream) {
+      // Store current transform position
+      const currentTransform = localVideo.style.transform;
+      
+      // Swap the streams
+      localVideo.srcObject = remoteStream;
+      remoteVideo.srcObject = localStream;
+      
+      // Maintain the position of the PiP video
+      setTimeout(() => {
+        localVideo.style.transform = currentTransform;
+      }, 10);
+      
+      // Add visual feedback
+      localVideo.style.borderColor = 'rgba(0, 255, 0, 0.8)';
+      setTimeout(() => {
+        localVideo.style.borderColor = 'rgba(255, 255, 255, 0.8)';
+      }, 300);
+    }
+  }
+  
   function addParticipant(userId, userName = null, isHost = false) {
     const participantsList = document.getElementById('participants-list');
     const participantCount = document.getElementById('participant-count');
@@ -143,6 +179,12 @@
     const loadingState = document.getElementById('loading-state');
     const readyState = document.getElementById('ready-state');
     
+    // Initialize draggable video
+    initializeDraggableVideo();
+    
+    // Update participant list with user's name
+    updateUserParticipantName();
+    
     // Simulate loading completion after a delay
     setTimeout(() => {
       hideAllStates();
@@ -172,6 +214,131 @@
     });
   });
   
+  function updateUserParticipantName() {
+    const userName = sessionStorage.getItem('userName');
+    if (userName) {
+      const userElement = document.querySelector('#participants-list .participant-item span');
+      if (userElement) {
+        userElement.textContent = userName;
+      }
+    }
+  }
+  
+  function initializeDraggableVideo() {
+    const localVideo = document.getElementById('localVideo');
+    let isDragging = false;
+    let hasMoved = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    // Make isDragging globally accessible
+    Object.defineProperty(window, 'isDragging', {
+      get: () => hasMoved,
+      set: (value) => hasMoved = value
+    });
+    
+    // Set initial position (bottom-right corner)
+    const container = localVideo.parentElement;
+    
+    function updatePosition() {
+      const containerRect = container.getBoundingClientRect();
+      xOffset = containerRect.width - 220; // 200px width + 20px margin
+      yOffset = containerRect.height - 170; // 150px height + 20px margin
+      setTranslate(xOffset, yOffset, localVideo);
+    }
+    
+    // Set initial position
+    updatePosition();
+    
+    // Update position on window resize
+    window.addEventListener('resize', updatePosition);
+    
+    localVideo.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+    
+    // Touch events for mobile
+    localVideo.addEventListener('touchstart', dragStart);
+    document.addEventListener('touchmove', dragMove);
+    document.addEventListener('touchend', dragEnd);
+    
+    function dragStart(e) {
+      hasMoved = false;
+      
+      if (e.type === 'touchstart') {
+        initialX = e.touches[0].clientX - xOffset;
+        initialY = e.touches[0].clientY - yOffset;
+      } else {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+      }
+      
+      if (e.target === localVideo) {
+        isDragging = true;
+        localVideo.style.cursor = 'grabbing';
+      }
+    }
+    
+    function dragMove(e) {
+      if (isDragging) {
+        e.preventDefault();
+        hasMoved = true;
+        
+        if (e.type === 'touchmove') {
+          currentX = e.touches[0].clientX - initialX;
+          currentY = e.touches[0].clientY - initialY;
+        } else {
+          currentX = e.clientX - initialX;
+          currentY = e.clientY - initialY;
+        }
+        
+        // Get container bounds
+        const containerRect = container.getBoundingClientRect();
+        const videoWidth = 200;
+        const videoHeight = 150;
+        
+        // Constrain to container bounds
+        const maxX = containerRect.width - videoWidth;
+        const maxY = containerRect.height - videoHeight;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        xOffset = currentX;
+        yOffset = currentY;
+        
+        setTranslate(currentX, currentY, localVideo);
+      }
+    }
+    
+    function dragEnd(e) {
+      if (isDragging) {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        localVideo.style.cursor = 'grab';
+        
+        // Prevent click event if the video was dragged
+        if (hasMoved) {
+          setTimeout(() => {
+            hasMoved = false;
+          }, 100);
+        }
+      }
+    }
+    
+    function setTranslate(xPos, yPos, el) {
+      el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+    }
+    
+    // Set initial cursor
+    localVideo.style.cursor = 'grab';
+  }
+  
   function hideAllStates() {
     const loadingState = document.getElementById('loading-state');
     const readyState = document.getElementById('ready-state');
@@ -191,8 +358,36 @@
   }
   
   .local-video {
+    width: 200px;
+    height: 150px;
     border: 3px solid rgba(255, 255, 255, 0.8);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    position: absolute !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    z-index: 1000;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+  
+  .local-video.draggable-video {
+    cursor: grab;
+    transition: transform 0.1s ease-out, border-color 0.3s ease;
+  }
+  
+  .local-video.draggable-video:active {
+    cursor: grabbing;
+  }
+  
+  .local-video:hover {
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
   }
   
   .controls-panel {

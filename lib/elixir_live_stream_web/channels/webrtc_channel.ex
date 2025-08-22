@@ -11,12 +11,19 @@ defmodule ElixirLiveStreamWeb.WebRTCChannel do
   alias ElixirLiveStreamWeb.Presence
 
   @impl true
-  def join("webrtc:" <> room_id, _payload, socket) do
+  def join("webrtc:" <> room_id, payload, socket) do
     # Track user presence in the room
     send(self(), :after_join)
 
     user_id = generate_user_id()
-    user_name = generate_user_name()
+
+    # Use custom user name if provided, otherwise generate one
+    user_name = case payload do
+      %{"user_name" => name} when is_binary(name) and byte_size(name) > 0 ->
+        String.trim(name) |> String.slice(0, 50) # Limit to 50 characters
+      _ ->
+        generate_user_name()
+    end
 
     socket =
       socket

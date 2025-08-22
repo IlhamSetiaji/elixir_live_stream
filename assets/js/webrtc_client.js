@@ -158,7 +158,6 @@ class WebRTCClient {
     // Handle connection state changes
     this.peerConnection.onconnectionstatechange = () => {
       console.log('Connection state:', this.peerConnection.connectionState)
-      this.updateStatus(`Connection: ${this.peerConnection.connectionState}`)
       
       if (this.peerConnection.connectionState === 'connected') {
         this.updateStatus('Connected')
@@ -166,6 +165,7 @@ class WebRTCClient {
                  this.peerConnection.connectionState === 'failed') {
         this.updateStatus('Disconnected')
       }
+      // Don't show status for 'connecting' state to avoid error toasts
     }
     
     // Add local stream tracks to peer connection

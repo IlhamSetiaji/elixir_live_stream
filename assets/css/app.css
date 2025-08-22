@@ -1,4 +1,11 @@
 /* Custom styles for WebRTC Video Streaming */
+
+/* Prevent horizontal scrolling */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 .video-container {
   position: relative;
   width: 100%;
@@ -15,14 +22,12 @@
 }
 
 .local-video {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   width: 200px;
   height: 150px;
-  border: 2px solid #fff;
+  border: 3px solid rgba(255, 255, 255, 0.8);
   border-radius: 8px;
-  z-index: 10;
+  z-index: 1000;
+  /* Position will be handled by inline styles for draggable functionality */
 }
 
 .controls-panel {
@@ -139,10 +144,8 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .local-video {
-    width: 150px;
-    height: 100px;
-    top: 5px;
-    right: 5px;
+    width: 150px !important;
+    height: 100px !important;
   }
   
   .controls-panel {

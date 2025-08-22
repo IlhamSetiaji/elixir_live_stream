@@ -11,6 +11,32 @@
             <p class="text-muted">Start or join a video call using WebRTC</p>
           </div>
           
+          <!-- Name Input Section -->
+          <div class="card border-warning mb-4">
+            <div class="card-body">
+              <h5 class="card-title text-center">
+                <i class="fas fa-user text-warning me-2"></i>
+                Enter Your Name
+              </h5>
+              <p class="card-text text-muted text-center mb-3">
+                Your name will be visible to other participants
+              </p>
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-user"></i>
+                </span>
+                <input 
+                  type="text" 
+                  id="user-name" 
+                  class="form-control form-control-lg" 
+                  placeholder="Enter your name" 
+                  required
+                  maxlength="50"
+                />
+              </div>
+            </div>
+          </div>
+          
           <div class="row g-3">
             <div class="col-12">
               <div class="card border-primary">
@@ -22,10 +48,14 @@
                   <p class="card-text text-muted mb-3">
                     Create a new room and invite others to join
                   </p>
-                  <.link href={~p"/room/create"} method="post" class="btn btn-success btn-lg">
+                  <button 
+                    id="create-room-btn" 
+                    class="btn btn-success btn-lg" 
+                    onclick="createRoom()"
+                  >
                     <i class="fas fa-video me-2"></i>
                     Create Room
-                  </.link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -41,23 +71,26 @@
                     Enter the room ID to join an existing meeting
                   </p>
                   
-                  <.form for={%{}} action={~p"/room/join"} method="post">
+                  <form id="join-room-form">
                     <div class="input-group mb-3">
                       <input 
                         type="text" 
-                        name="room_id" 
+                        id="room-id" 
                         class="form-control form-control-lg" 
                         placeholder="Enter Room ID" 
                         required
                         pattern="[a-z0-9]{8,16}"
                         title="Room ID should contain only lowercase letters and numbers"
                       />
-                      <button class="btn btn-info btn-lg" type="submit">
+                      <button 
+                        class="btn btn-info btn-lg" 
+                        type="submit"
+                      >
                         <i class="fas fa-sign-in-alt me-2"></i>
                         Join Room
                       </button>
                     </div>
-                  </.form>
+                  </form>
                 </div>
               </div>
             </div>
@@ -74,6 +107,104 @@
     </div>
   </div>
 </div>
+
+<script>
+  function validateName() {
+    const userName = document.getElementById('user-name').value.trim();
+    if (!userName) {
+      alert('Please enter your name before proceeding.');
+      document.getElementById('user-name').focus();
+      return false;
+    }
+    return true;
+  }
+  
+  function createRoom() {
+    if (!validateName()) return;
+    
+    const userName = document.getElementById('user-name').value.trim();
+    const createBtn = document.getElementById('create-room-btn');
+    
+    // Show loading state
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Room...';
+    
+    // Store name in sessionStorage for later use
+    sessionStorage.setItem('userName', userName);
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/room/create';
+    
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = '_csrf_token';
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+  
+  document.getElementById('join-room-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!validateName()) return;
+    
+    const userName = document.getElementById('user-name').value.trim();
+    const roomId = document.getElementById('room-id').value.trim();
+    
+    if (!roomId) {
+      alert('Please enter a room ID.');
+      document.getElementById('room-id').focus();
+      return;
+    }
+    
+    // Store name in sessionStorage for later use
+    sessionStorage.setItem('userName', userName);
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/room/join';
+    
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = '_csrf_token';
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+    }
+    
+    // Add room ID
+    const roomIdInput = document.createElement('input');
+    roomIdInput.type = 'hidden';
+    roomIdInput.name = 'room_id';
+    roomIdInput.value = roomId;
+    form.appendChild(roomIdInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+  });
+  
+  // Auto-focus name input when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('user-name').focus();
+    
+    // Pre-fill name if it exists in sessionStorage
+    const storedName = sessionStorage.getItem('userName');
+    if (storedName) {
+      document.getElementById('user-name').value = storedName;
+    }
+  });
+</script>
 
 <style>
   .card {

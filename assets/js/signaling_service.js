@@ -64,7 +64,12 @@ class SignalingService {
     }
     
     console.log(`Joining WebRTC channel for room: ${this.roomId}`)
-    this.channel = this.socket.channel(`webrtc:${this.roomId}`, {})
+    
+    // Get user name from sessionStorage
+    const userName = sessionStorage.getItem('userName')
+    const payload = userName ? { user_name: userName } : {}
+    
+    this.channel = this.socket.channel(`webrtc:${this.roomId}`, payload)
     
     // Handle channel events
     this.channel.on("offer", (payload) => {
