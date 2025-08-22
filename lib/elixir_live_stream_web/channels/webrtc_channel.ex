@@ -15,33 +15,40 @@ defmodule ElixirLiveStreamWeb.WebRTCChannel do
     # Track user presence in the room
     send(self(), :after_join)
 
+    user_id = generate_user_id()
+    user_name = generate_user_name()
+
     socket =
       socket
       |> assign(:room_id, room_id)
-      |> assign(:user_id, generate_user_id())
+      |> assign(:user_id, user_id)
+      |> assign(:user_name, user_name)
 
-    {:ok, %{room_id: room_id}, socket}
+    {:ok, %{room_id: room_id, user_id: user_id, user_name: user_name}, socket}
   end
 
   @impl true
   def handle_info(:after_join, socket) do
     user_id = socket.assigns.user_id
+    user_name = socket.assigns.user_name
 
     # Track presence
     {:ok, _} = Presence.track(socket, user_id, %{
       online_at: inspect(System.system_time(:second)),
-      joined_at: inspect(System.system_time(:second))
+      joined_at: inspect(System.system_time(:second)),
+      user_name: user_name
     })
 
     # Get current presence list
     present_users = Presence.list(socket)
     user_count = map_size(present_users)
 
-    IO.puts("User #{user_id} joined room #{socket.assigns.room_id}. Total users: #{user_count}")
+    IO.puts("User #{user_name} (#{user_id}) joined room #{socket.assigns.room_id}. Total users: #{user_count}")
 
     # Notify ALL users (including the new one) about the peer joining
     broadcast!(socket, "peer_joined", %{
       user_id: user_id,
+      user_name: user_name,
       user_count: user_count,
       present_users: present_users
     })
@@ -106,9 +113,20 @@ defmodule ElixirLiveStreamWeb.WebRTCChannel do
 
   @impl true
   def terminate(_reason, socket) do
+    user_id = socket.assigns.user_id
+    user_name = socket.assigns.user_name
+
+    # Get current presence before termination
+    present_users = Presence.list(socket)
+    user_count = map_size(present_users)
+
+    IO.puts("User #{user_name} (#{user_id}) left room #{socket.assigns.room_id}. Remaining users: #{user_count - 1}")
+
     # Notify others that peer left
     broadcast_from!(socket, "peer_left", %{
-      user_id: socket.assigns.user_id
+      user_id: user_id,
+      user_name: user_name,
+      user_count: user_count - 1
     })
 
     :ok
@@ -118,5 +136,16 @@ defmodule ElixirLiveStreamWeb.WebRTCChannel do
 
   defp generate_user_id do
     :crypto.strong_rand_bytes(16) |> Base.encode64()
+  end
+
+  defp generate_user_name do
+    adjectives = ["Cool", "Smart", "Happy", "Bright", "Swift", "Clever", "Kind", "Wise", "Bold", "Calm"]
+    animals = ["Fox", "Wolf", "Bear", "Eagle", "Lion", "Tiger", "Panda", "Dolphin", "Owl", "Hawk"]
+
+    adjective = Enum.random(adjectives)
+    animal = Enum.random(animals)
+    number = :rand.uniform(999)
+
+    "#{adjective}#{animal}#{number}"
   end
 end

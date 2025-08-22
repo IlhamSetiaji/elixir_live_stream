@@ -45,6 +45,27 @@
       <h4>Ready to receive call</h4>
       <p class="text-muted">Waiting for the other person to start the call...</p>
     </div>
+    
+    <!-- Participants List -->
+    <div class="position-absolute top-0 end-0 m-3" id="participants-panel">
+      <div class="card bg-dark text-white" style="min-width: 250px; opacity: 0.9;">
+        <div class="card-header py-2">
+          <h6 class="mb-0">
+            <i class="fas fa-users me-2"></i>
+            Participants (<span id="participant-count">1</span>)
+          </h6>
+        </div>
+        <div class="card-body py-2">
+          <div id="participants-list">
+            <div class="participant-item d-flex align-items-center mb-1">
+              <i class="fas fa-user-circle me-2 text-info"></i>
+              <span>You</span>
+              <i class="fas fa-circle ms-auto text-success" title="Online"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- Control Panel -->
@@ -74,6 +95,49 @@
     }
   }
   
+  function addParticipant(userId, userName = null, isHost = false) {
+    const participantsList = document.getElementById('participants-list');
+    const participantCount = document.getElementById('participant-count');
+    
+    // Check if participant already exists
+    if (document.getElementById(`participant-${userId}`)) {
+      return;
+    }
+    
+    const displayName = userName || (isHost ? 'Host' : 'Participant');
+    
+    const participantDiv = document.createElement('div');
+    participantDiv.id = `participant-${userId}`;
+    participantDiv.className = 'participant-item d-flex align-items-center mb-1';
+    participantDiv.innerHTML = `
+      <i class="fas fa-user-circle me-2 text-${isHost ? 'primary' : 'info'}"></i>
+      <span class="flex-grow-1" style="min-width: 0; overflow: hidden; text-overflow: ellipsis;">${displayName}</span>
+      ${isHost ? '<i class="fas fa-crown ms-auto text-warning" title="Host"></i>' : '<i class="fas fa-circle ms-auto text-success" title="Online"></i>'}
+    `;
+    
+    if (isHost) {
+      participantsList.appendChild(participantDiv);
+    } else {
+      participantsList.appendChild(participantDiv);
+    }
+    
+    // Update participant count
+    const currentCount = participantsList.children.length;
+    participantCount.textContent = currentCount;
+  }
+  
+  function removeParticipant(userId) {
+    const participantElement = document.getElementById(`participant-${userId}`);
+    if (participantElement) {
+      participantElement.remove();
+      
+      // Update participant count
+      const participantsList = document.getElementById('participants-list');
+      const participantCount = document.getElementById('participant-count');
+      participantCount.textContent = participantsList.children.length;
+    }
+  }
+  
   // Show/hide loading and ready states
   document.addEventListener('DOMContentLoaded', () => {
     const loadingState = document.getElementById('loading-state');
@@ -81,10 +145,40 @@
     
     // Simulate loading completion after a delay
     setTimeout(() => {
-      loadingState.style.display = 'none';
+      hideAllStates();
       readyState.classList.remove('d-none');
     }, 2000);
+    
+    // Listen for peer joined events
+    window.addEventListener('peer-joined', (event) => {
+      console.log('Peer joined event received in callee page:', event.detail);
+      if (event.detail && event.detail.user_id) {
+        addParticipant(event.detail.user_id, event.detail.user_name, true); // Mark as host since they created the room
+      }
+    });
+    
+    // Listen for call started events
+    window.addEventListener('call-started', () => {
+      console.log('Call started, hiding all states');
+      hideAllStates();
+    });
+    
+    // Listen for peer left events
+    window.addEventListener('peer-left', (event) => {
+      console.log('Peer left event received:', event.detail);
+      if (event.detail && event.detail.user_id) {
+        removeParticipant(event.detail.user_id);
+      }
+    });
   });
+  
+  function hideAllStates() {
+    const loadingState = document.getElementById('loading-state');
+    const readyState = document.getElementById('ready-state');
+    
+    if (loadingState) loadingState.style.display = 'none';
+    if (readyState) readyState.classList.add('d-none');
+  }
 </script>
 
 <style>

@@ -55,8 +55,8 @@ const Hooks = {
       }
     },
     
-    onPeerJoined() {
-      console.log("Handling peer joined in UI")
+    onPeerJoined(payload) {
+      console.log("Handling peer joined in UI:", payload)
       // Hide waiting state and show ready state for caller
       const waitingState = this.el.querySelector('#waiting-state')
       const loadingState = this.el.querySelector('#loading-state')
@@ -69,8 +69,10 @@ const Hooks = {
         loadingState.style.display = 'none'
       }
       
-      // Dispatch custom event for the page to handle
-      window.dispatchEvent(new CustomEvent('peer-joined'))
+      // Dispatch custom event for the page to handle with detailed payload
+      window.dispatchEvent(new CustomEvent('peer-joined', { 
+        detail: payload 
+      }))
       
       // Update status
       this.updateConnectionStatus('Peer joined - Ready to call')
@@ -126,6 +128,9 @@ const Hooks = {
         await this.startLocalVideo()
         await this.webrtcClient.initiateCall()
         this.updateConnectionStatus('Calling...')
+        
+        // Dispatch call started event
+        window.dispatchEvent(new CustomEvent('call-started'))
       } catch (error) {
         console.error('Error starting call:', error)
         this.updateConnectionStatus('Error: ' + error.message)
@@ -135,6 +140,9 @@ const Hooks = {
     hangup() {
       this.webrtcClient.hangup()
       this.updateConnectionStatus('Disconnected')
+      
+      // Dispatch call ended event
+      window.dispatchEvent(new CustomEvent('call-ended'))
     },
     
     updateConnectionStatus(status) {

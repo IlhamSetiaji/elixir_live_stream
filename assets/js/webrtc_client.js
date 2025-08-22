@@ -68,6 +68,13 @@ class WebRTCClient {
     this.signalingService.onPeerLeft = (payload) => {
       console.log("Peer left the room:", payload)
       this.handlePeerLeft()
+      
+      // Dispatch peer left event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('peer-left', {
+          detail: payload
+        }))
+      }
     }
     
     this.signalingService.onConnected = (resp) => {

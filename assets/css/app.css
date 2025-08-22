@@ -155,4 +155,65 @@
     height: 45px;
     font-size: 18px;
   }
+  
+  #participants-panel {
+    top: 0;
+    right: 0;
+    left: 0;
+    margin: 5px;
+  }
+  
+  #participants-panel .card {
+    min-width: auto;
+  }
+}
+
+/* Participant list styles */
+.participant-item {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.participant-item:last-child {
+  border-bottom: none;
+}
+
+.participant-item i.fas {
+  width: 16px;
+  text-align: center;
+}
+
+#participants-panel .card {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#participants-panel .card-header {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#participants-panel .card-body {
+  background-color: rgba(0, 0, 0, 0.2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for participants list */
+#participants-panel .card-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+#participants-panel .card-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+#participants-panel .card-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+#participants-panel .card-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }

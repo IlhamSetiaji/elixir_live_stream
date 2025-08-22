@@ -51,6 +51,27 @@
         </button>
       </div>
     </div>
+    
+    <!-- Participants List -->
+    <div class="position-absolute top-0 end-0 m-3" id="participants-panel">
+      <div class="card bg-dark text-white" style="min-width: 250px; opacity: 0.9;">
+        <div class="card-header py-2">
+          <h6 class="mb-0">
+            <i class="fas fa-users me-2"></i>
+            Participants (<span id="participant-count">1</span>)
+          </h6>
+        </div>
+        <div class="card-body py-2">
+          <div id="participants-list">
+            <div class="participant-item d-flex align-items-center mb-1">
+              <i class="fas fa-user-circle me-2 text-primary"></i>
+              <span>You (Host)</span>
+              <i class="fas fa-crown ms-auto text-warning" title="Host"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- Control Panel -->
@@ -80,27 +101,110 @@
 <script>
   function copyRoomId() {
     const roomId = '<%= @room_id %>';
-    navigator.clipboard.writeText(roomId).then(() => {
-      // Show feedback
-      const btn = event.target.closest('button');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check me-2"></i>Copied!';
-      btn.classList.remove('btn-outline-light');
-      btn.classList.add('btn-success');
-      
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.classList.remove('btn-success');
-        btn.classList.add('btn-outline-light');
-      }, 2000);
-    }).catch(() => {
-      alert('Failed to copy room ID. Please copy manually: ' + roomId);
-    });
+    const btn = event.target.closest('button');
+    
+    // Try the modern clipboard API first
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(roomId).then(() => {
+        showCopySuccess(btn);
+      }).catch(() => {
+        fallbackCopyToClipboard(roomId, btn);
+      });
+    } else {
+      fallbackCopyToClipboard(roomId, btn);
+    }
+  }
+  
+  function fallbackCopyToClipboard(text, btn) {
+    // Create a temporary textarea element
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showCopySuccess(btn);
+      } else {
+        showCopyError(text);
+      }
+    } catch (err) {
+      showCopyError(text);
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }
+  
+  function showCopySuccess(btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-2"></i>Copied!';
+    btn.classList.remove('btn-outline-light');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-light');
+    }, 2000);
+  }
+  
+  function showCopyError(roomId) {
+    // Show a modal or prompt with the room ID for manual copying
+    const message = `Please copy this room ID manually: ${roomId}`;
+    prompt(message, roomId);
   }
   
   function leaveRoom() {
     if (confirm('Are you sure you want to leave the room?')) {
       window.location.href = '/';
+    }
+  }
+  
+  function addParticipant(userId, userName = null, isHost = false) {
+    const participantsList = document.getElementById('participants-list');
+    const participantCount = document.getElementById('participant-count');
+    
+    // Check if participant already exists
+    if (document.getElementById(`participant-${userId}`)) {
+      return;
+    }
+    
+    const displayName = userName || (isHost ? 'You (Host)' : 'Participant');
+    
+    const participantDiv = document.createElement('div');
+    participantDiv.id = `participant-${userId}`;
+    participantDiv.className = 'participant-item d-flex align-items-center mb-1';
+    participantDiv.innerHTML = `
+      <i class="fas fa-user-circle me-2 text-${isHost ? 'primary' : 'info'}"></i>
+      <span class="flex-grow-1" style="min-width: 0; overflow: hidden; text-overflow: ellipsis;">${displayName}</span>
+      ${isHost ? '<i class="fas fa-crown ms-auto text-warning" title="Host"></i>' : '<i class="fas fa-circle ms-auto text-success" title="Online"></i>'}
+    `;
+    
+    if (isHost) {
+      participantsList.insertBefore(participantDiv, participantsList.firstChild);
+    } else {
+      participantsList.appendChild(participantDiv);
+    }
+    
+    // Update participant count
+    const currentCount = participantsList.children.length;
+    participantCount.textContent = currentCount;
+  }
+  
+  function removeParticipant(userId) {
+    const participantElement = document.getElementById(`participant-${userId}`);
+    if (participantElement) {
+      participantElement.remove();
+      
+      // Update participant count
+      const participantsList = document.getElementById('participants-list');
+      const participantCount = document.getElementById('participant-count');
+      participantCount.textContent = participantsList.children.length;
     }
   }
   
@@ -116,29 +220,70 @@
     }, 2000);
     
     // Listen for peer joined events via custom events
-    window.addEventListener('peer-joined', () => {
-      console.log('Peer joined event received in caller page');
-      waitingState.classList.add('d-none');
+    window.addEventListener('peer-joined', (event) => {
+      console.log('Peer joined event received in caller page:', event.detail);
+      
+      // Hide ALL other states first
+      hideAllStates();
       
       // Show a "ready to call" message
-      const videoContainer = document.querySelector('.position-relative.w-100.h-100');
-      let readyMessage = document.getElementById('ready-message');
+      showReadyToCallState();
       
-      if (!readyMessage) {
-        readyMessage = document.createElement('div');
-        readyMessage.id = 'ready-message';
-        readyMessage.className = 'position-absolute top-50 start-50 translate-middle text-white text-center';
-        readyMessage.innerHTML = `
-          <i class="fas fa-phone fa-3x mb-3 text-success"></i>
-          <h4>Ready to start the call!</h4>
-          <p class="text-muted">Click the green phone button to start the video call</p>
-        `;
-        videoContainer.appendChild(readyMessage);
+      // Add participant to the list
+      if (event.detail && event.detail.user_id) {
+        addParticipant(event.detail.user_id, event.detail.user_name, false);
       }
-      
-      readyMessage.classList.remove('d-none');
+    });
+    
+    // Listen for call started events
+    window.addEventListener('call-started', () => {
+      console.log('Call started, hiding all states');
+      hideAllStates();
+    });
+    
+    // Listen for peer left events
+    window.addEventListener('peer-left', (event) => {
+      console.log('Peer left event received:', event.detail);
+      if (event.detail && event.detail.user_id) {
+        removeParticipant(event.detail.user_id);
+        
+        // Check if we're back to waiting state (no other participants)
+        const participantsList = document.getElementById('participants-list');
+        const nonHostParticipants = Array.from(participantsList.children).filter(child => 
+          !child.textContent.includes('You (Host)')
+        );
+        
+        if (nonHostParticipants.length === 0) {
+          hideAllStates();
+          waitingState.classList.remove('d-none');
+        }
+      }
     });
   });
+  
+  function hideAllStates() {
+    const loadingState = document.getElementById('loading-state');
+    const waitingState = document.getElementById('waiting-state');
+    const readyMessage = document.getElementById('ready-message');
+    
+    if (loadingState) loadingState.style.display = 'none';
+    if (waitingState) waitingState.classList.add('d-none');
+    if (waitingState) $('#waiting-state').hide();
+    if (readyMessage) readyMessage.remove();
+  }
+  
+  function showReadyToCallState() {
+    const videoContainer = document.querySelector('.position-relative.w-100.h-100');
+    const readyMessage = document.createElement('div');
+    readyMessage.id = 'ready-message';
+    readyMessage.className = 'position-absolute top-50 start-50 translate-middle text-white text-center';
+    readyMessage.innerHTML = `
+      <i class="fas fa-phone fa-3x mb-3 text-success"></i>
+      <h4>Ready to start the call!</h4>
+      <p class="text-muted">Click the green phone button to start the video call</p>
+    `;
+    videoContainer.appendChild(readyMessage);
+  }
 </script>
 
 <style>
